@@ -1,5 +1,5 @@
 {
-	"name": "garethp/php-ews",
+	"name": "avetisyan-ae/php-ews",
 	"license": "BSD-3-Clause",
 	"description": "A PHP Library to interact with the Exchange SOAP service",
 	"keywords": [
