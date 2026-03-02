@@ -26,21 +26,25 @@ class GroupedItemsType extends Type implements Countable, ArrayAccess, IteratorA
      */
     protected $items = null;
 
+    #[\ReturnTypeWillChange]
     public function count()
     {
         return count($this->items);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetExists($offset)
     {
         return isset($this->items[$offset]);
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetGet($offset)
     {
         return isset($this->items[$offset]) ? $this->items[$offset] : null;
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetSet($offset, $value)
     {
         if (is_null($offset)) {
@@ -50,11 +54,13 @@ class GroupedItemsType extends Type implements Countable, ArrayAccess, IteratorA
         }
     }
 
+    #[\ReturnTypeWillChange]
     public function offsetUnset($offset)
     {
         unset($this->items[$offset]);
     }
 
+    #[\ReturnTypeWillChange]
     public function getIterator()
     {
         return new \ArrayIterator($this->items->getIterator());

@@ -58,25 +58,83 @@ trait BuildableTrait
         }
     }
 
+//        protected static function buildObjectFromArray($array, bool $strict = false)
+//    {
+//        $object = new static();
+//        $reflect = new \ReflectionClass(static::class);
+//
+//        foreach ($array as $key => $value) {
+//            // If we're in strict mode, let's take the reflection class, check for a setter and try to use that to build
+//            // the array, resulting in type-correct responses the whole way down.
+//            if ($strict === true && $reflect->hasMethod("set" . ucfirst($key))) {
+//                $parameters = $reflect->getMethod("set" . ucfirst($key))->getParameters();
+//
+//                if (count($parameters) === 1
+//                    && $parameters[0]->hasType()
+//                    && $parameters[0]->getType() !== null) {
+//                    $type = $parameters[0]->getType();
+//
+//                    $classToBuild = $parameters[0]->getType()->getName();
+//
+//                    $newValue = call_user_func("$classToBuild::buildFromArray", $value, true);
+//                    $object->{ucfirst($key)} = $newValue;
+//                    continue;
+//                }
+//            }
+//
+//            if (is_array($value)) {
+//                $value = self::buildFromArray($value);
+//            }
+//
+//            //I think _value is a more expressive way to set string value, but Soap needs _
+//            if ($key === "_value") {
+//                $key = "_";
+//            }
+//
+//            if ($value instanceof Type) {
+//                $value = $value->toXmlObject();
+//            }
+//
+//            $object->{ucfirst($key)} = $value;
+//        }
+//
+//        return $object;
+//    }
+
     protected static function buildObjectFromArray($array, bool $strict = false)
     {
         $object = new static();
         $reflect = new \ReflectionClass(static::class);
 
         foreach ($array as $key => $value) {
-            // If we're in strict mode, let's take the reflection class, check for a setter and try to use that to build
-            // the array, resulting in type-correct responses the whole way down.
+            // Если мы в строгом режиме, проверяем наличие сеттера и типа параметра
             if ($strict === true && $reflect->hasMethod("set" . ucfirst($key))) {
-                $parameters = $reflect->getMethod("set" . ucfirst($key))->getParameters();
+                $method = $reflect->getMethod("set" . ucfirst($key));
+                $parameters = $method->getParameters();
 
-                if (count($parameters) === 1
-                    && $parameters[0]->hasType()
-                    && $parameters[0]->getClass() !== null) {
-                    $classToBuild = $parameters[0]->getClass()->getName();
+                if (count($parameters) === 1 && $parameters[0]->hasType()) {
+                    $type = $parameters[0]->getType();
+                    $classToBuild = null;
 
-                    $newValue = call_user_func("$classToBuild::buildFromArray", $value, true);
-                    $object->{ucfirst($key)} = $newValue;
-                    continue;
+                    // Обработка PHP 8.1+ (ReflectionNamedType vs ReflectionUnionType)
+                    if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
+                        $classToBuild = $type->getName();
+                    } elseif ($type instanceof \ReflectionUnionType) {
+                        // Если тип составной, ищем первый подходящий класс
+                        foreach ($type->getTypes() as $unionType) {
+                            if ($unionType instanceof \ReflectionNamedType && !$unionType->isBuiltin()) {
+                                $classToBuild = $unionType->getName();
+                                break;
+                            }
+                        }
+                    }
+
+                    // Если класс найден и у него есть метод buildFromArray
+                    if ($classToBuild && method_exists($classToBuild, 'buildFromArray')) {
+                        $newValue = call_user_func([$classToBuild, 'buildFromArray'], $value, true);
+                        $object->{ucfirst($key)} = $newValue;
+                        continue;
+                    }
                 }
             }
 
@@ -84,7 +142,7 @@ trait BuildableTrait
                 $value = self::buildFromArray($value);
             }
 
-            //I think _value is a more expressive way to set string value, but Soap needs _
+            // SOAP требует "_" вместо "_value"
             if ($key === "_value") {
                 $key = "_";
             }
@@ -98,6 +156,7 @@ trait BuildableTrait
 
         return $object;
     }
+
 
     public static function buildArrayFromArray($array)
     {

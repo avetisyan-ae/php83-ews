@@ -8,9 +8,9 @@ class RestrictionFormatter
     {
         foreach ($restrictions as $restrictionType => $query) {
             if (!in_array($restrictionType, ['And', 'Not', 'Or'])) {
-                $restrictions[$restrictionType] = self::formatExpression($preference, $query);
+                $restrictions->{$restrictionType} = self::formatExpression($preference, $query);
             } else {
-                $restrictions[$restrictionType] = self::format($preference, $query);
+                $restrictions->{$restrictionType} = self::format($preference, $query);
             }
         }
 
@@ -19,7 +19,7 @@ class RestrictionFormatter
 
     private static function formatExpression($preference, $expression)
     {
-        if (count($expression) > 1 && is_array(current($expression))) {
+        if (is_array($expression) && count($expression) > 1 && is_array(current($expression))) {
             return array_map(function ($subExpression) use ($preference) {
                 return self::formatExpression($preference, $subExpression)[0];
             }, $expression);
@@ -32,14 +32,16 @@ class RestrictionFormatter
     {
         $formattedRestrictionType = [];
 
-        foreach ($expression as $key => $value) {
-            if ($value === false) {
-                $value = 'false';
+        if(is_array($expression) || is_object($expression)) {
+            foreach ($expression as $key => $value) {
+                if ($value === false) {
+                    $value = 'false';
+                }
+                $formattedRestrictionType[] = array(
+                    'FieldURI' => array('FieldURI' => API\FieldURIManager::getFieldUriByName($key, $preference)),
+                    'FieldURIOrConstant' => array('Constant' => array('Value' => (string)$value))
+                );
             }
-            $formattedRestrictionType[] = array(
-                'FieldURI' => array('FieldURI' => API\FieldURIManager::getFieldUriByName($key, $preference)),
-                'FieldURIOrConstant' => array('Constant' => array('Value' => (string)$value))
-            );
         }
 
         return $formattedRestrictionType;

@@ -132,7 +132,7 @@ class ResponseMessageType extends Message
      * @param $value \garethp\ews\API\Message\ResponseMessageType\MessageXmlAType
      * @return ResponseMessageType
      */
-    public function setMessageXml(\garethp\ews\API\Message\ResponseMessageType\MessageXmlAType $value)
+    public function setMessageXml($value)
     {
         $this->messageXml = $value;
         return $this;
